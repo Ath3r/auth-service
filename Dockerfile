@@ -1,16 +1,28 @@
-FROM node:latest
+FROM node as builder
 
-RUN mkdir -p /usr/src/app
-
+# Create app directory
 WORKDIR /usr/src/app
 
-COPY package.json /usr/src/app
+# Install app dependencies
+COPY package.json yarn.lock ./
 
-RUN npm install
+RUN yarn install --frozen-lockfile
 
-COPY . /usr/src/app
+COPY . .
 
-EXPOSE 3000
+RUN yarn build
 
-CMD [ "npm", "start" ]
+FROM node:slim
 
+# Create app directory
+WORKDIR /usr/src/app
+
+# Install app dependencies
+COPY package.json yarn.lock ./
+
+RUN yarn install --frozen-lockfile
+
+COPY --from=builder /usr/src/app/build ./build
+
+EXPOSE 8080
+CMD [ "node", "build/index.js" ]
